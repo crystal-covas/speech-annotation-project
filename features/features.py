@@ -88,3 +88,41 @@ def make_spectrogram(stft_segments,max_freq,n_fft,sample_rate,thres_db):
         spec_lst.append(20*np.log(mag_stft_segment[0:max_freq_bins]))
 
     return spec_lst
+
+def mel_filterbank(n_filters,sample_rate,n_fft):
+
+    #frequency range
+    low_freq = 0
+    high_freq = sample_rate//2
+
+    #mel-range, from frequency to mel
+    min_mel=freq_to_mel(low_freq)
+    max_mel=freq_to_mel(high_freq)
+
+    #create the x-axis of mel_filterbank
+    mel_pts=np.linspace(min_mel,max_mel,2+n_filters)
+
+    #convert from mel to frequency
+    freq_pts=mel_to_freq(mel_pts)
+
+    #freq to fft_bins conversion
+    #fft_bins=(((1+n_fft)*freq_pts)//sample_rate).astype(np.int32)
+    fft_bins=(((1+n_fft)*freq_pts)//sample_rate).astype(np.int32)
+
+    mel_filter_bank=np.zeros((n_filters,1+n_fft//2))
+    for i in range(1,n_filters+1):
+        f_m_minus=fft_bins[i-1]
+        f_m=fft_bins[i]
+        f_m_plus=fft_bins[i+1]
+
+        for j in range(f_m_minus,f_m):
+            mel_filter_bank[i-1,j]=(j-fft_bins[i-1])/ (fft_bins[i] - fft_bins[i - 1])
+
+        for j in range(f_m,f_m_plus):
+            mel_filter_bank[i-1,j]=(fft_bins[i + 1] - j) / (fft_bins[i + 1] - fft_bins[i])
+
+
+    mel_filter_bank=mel_filter_bank.T
+    #mel_filter = mel_filter_bank.T / mel_filter_bank.sum(axis=1).clip(1e-16)
+
+    return mel_filter_bank
