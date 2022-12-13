@@ -89,7 +89,25 @@ def make_spectrogram(stft_segments,max_freq,n_fft,sample_rate,thres_db):
 
     return spec_lst
 
+### Mel-spectrogram and MFCC ###
+def freq_to_mel(freq):
+    mel_scale=2595*np.log10(1+freq/700)
+    return mel_scale
+
+def mel_to_freq(mel):
+    freq_scale=700 * (10**(mel/2595) - 1)
+    return freq_scale
+
 def mel_filterbank(n_filters,sample_rate,n_fft):
+    """
+    Create the mel_filterbank
+    _____
+    :in:
+    n_filters: The total number of filters
+    _____
+    :out:
+    array of the mel_filter_bank
+    """
 
     #frequency range
     low_freq = 0
@@ -123,6 +141,34 @@ def mel_filterbank(n_filters,sample_rate,n_fft):
 
 
     mel_filter_bank=mel_filter_bank.T
-    #mel_filter = mel_filter_bank.T / mel_filter_bank.sum(axis=1).clip(1e-16)
 
     return mel_filter_bank
+
+
+def make_mel_spectrogram(segments,sample_rate,n_fft,n_filters,thres_db):
+    """
+    Create the mel-spectrogram; the dot product between the mel_filter_bank and the spectrogram
+    _____
+    :in:
+    mel_filterbank
+    spectrogram
+    _____
+    :out:
+    array of mel_spectrogram
+    """
+
+    #short-term-fourier-transform
+    fft_segments,freq_bins = STFT(segments=segments,sample_rate=22050,n_fft=2048)
+
+    # create the spectrogram
+    spec=make_spectrogram(fft_segments,n_fft,thres_db,sample_rate)
+
+    #create the mel-filter-bank
+    mel_filter=mel_filterbank(n_filters,sample_rate,n_fft)
+
+    # project the spectrogram onto the mel-basis
+    proj_mel=np.dot(spec,mel_filter)
+
+    mel_spec=proj_mel.T
+
+    return mel_spec
